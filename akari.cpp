@@ -76,6 +76,10 @@ class Akari{
         int **rowConflict;
         bool **columnAvailable;
         bool **rowAvailable;
+        int maxColumn;
+        int maxRow;
+        int *numColumn;
+        int *numRow;
     public:
         Akari(int **sudoku, int r, int c, int input_mode=1){
             row = r;
@@ -108,6 +112,8 @@ class Akari{
             s2 = new LinkStack<Point*>();
             hasPrinted=false;
             //列分块
+            int maxNum=0;
+            numColumn = new int[column];
             for(int j=0;j<column;j++){
                 int num=0;
                 for(int i=0;i<row;i++){
@@ -121,15 +127,58 @@ class Akari{
                         }
                     }
                 }
+                if(maxNum<num){
+                    maxNum=num;
+                }
+                numColumn[j]=num;
+            }
+            maxColumn=maxNum;
+            for(int i=0;i<column;i++){
+                columnAvailable[i]=new bool[maxNum];
+                for(int j=0;j<maxNum;j++){
+                    columnAvailable[i][j]=true;
+                }
+            }
+            for(int i=0;i<column;i++){
+                for(int j=0;j<numColumn[i];j++){
+                    columnAvailable[i][j]=false;
+                }
             }
             //行分块
+            maxNum=0;
+            numRow = new int[row];
             for(int i=0;i<row;i++){
                 int num=0;
-                for(int j=0;i<column;i++){
+                for(int j=0;j<column;j++){
+                    if(j==0){
+                        while(puzzle_list[i][j]==-1){
+                            j++;
+                        }
+                    }
+                    if(puzzle_list[i][j]>=-1){
+                        num+=1;
+                        while(j+1<column && puzzle_list[i][j+1]>=-1){
+                            j=j+1;
+                        }
+                    }
                     if(puzzle_list[i][j]==-2){
                         rowConflict[i][j]=num;
                     }
-                    if()
+                }
+                if(maxNum<num){
+                    maxNum=num;
+                }
+                numRow[i]=num;
+            }
+            for(int i=0;i<row;i++){
+                rowAvailable[i]=new bool[maxNum];
+                for(int j=0;j<maxNum;j++){
+                    rowAvailable[i][j]=true;
+                }
+            }
+            for(int i=0;i<row;i++){
+                for(int j=0;j<numRow[i];j++){
+                    rowAvailable[i][j]=false;
                 }
             }
         }
@@ -210,54 +259,6 @@ class Akari{
                 }
             }
         }
-        void init(){
-            for(int i=0;i<row;i++){
-                for(int j=0;j<column;j++){
-                    if(puzzle_list[i][j]==0){
-                        if(i-1>=0){
-                            puzzle_list[i-1][j]=-5;
-                        }
-                        if(j-1>=0){
-                            puzzle_list[i][j-1]=-5;
-                        }
-                        if(i+1<row){
-                            puzzle_list[i+11][j]=-5;
-                        }
-                        if(j+1<column){
-                            puzzle_list[i][j+1]=-5;
-                        }
-                    }
-                    if(puzzle_list[i][j]==4){
-                        puzzle_list[i+1][j]=-3;
-                        puzzle_list[i][j+1]=-3;
-                        puzzle_list[i][j-1]=-3;
-                        puzzle_list[i-1][j]=-3;
-                        lightSquare(i+1,j);
-                        lightSquare(i-1,j);
-                        lightSquare(i,j+1);
-                        lightSquare(i,j-1);
-                        puzzle_list[i+1][j+1]=-5;
-                        puzzle_list[i+1][j-1]=-5;
-                        puzzle_list[i-1][j+1]=-5;
-                        puzzle_list[i-1][j-1]=-5;
-                    }
-                    if(puzzle_list[i][j]==3){
-                        if(i-1>=0&&j-1>=0){
-                            puzzle_list[i-1][j-1]=-5;
-                        }
-                        if(i-1>=0&&j+1<column){
-                            puzzle_list[i-1][j+1]=-5;
-                        }
-                        if(i+1<row&&j-1>=0){
-                            puzzle_list[i+1][j-1]=-5;
-                        }
-                        if(i+1<row&&j+1<column){
-                            puzzle_list[i+1][j+1]=-5;
-                        }
-                    }
-                }
-            }
-        }
         bool isNextToNum(int i,int j){
             if(i-1>=0 && puzzle_list[i-1][j]>=0) return true;
             if(i+1<row && puzzle_list[i+1][j]>=0) return true;
@@ -326,111 +327,31 @@ class Akari{
         }
 
         bool checkRule(int i, int j){
-            //i,j are position number
-            //判断能不能在这个位置放灯，要满足不能互相照到和墙上数字两个条件
-            // if(checkLight(i,j)&&checkWall3(i,j)){
-            //     return true;
-            // }
-            if(isLighted[i][j]==0 && checkWall3(i,j)){
+            if(columnAvailable[j][columnConflict[i][j]]==false && rowAvailable[i][rowConflict[i][j]]==false){
                 return true;
             }
-            else{
-                return false;
-            }
-        }
-        void lightSquare(int x, int y){
-            //在x，y处放灯会照到多少个格子，且假设好这个位置原本就是没被照到
-            isLighted[x][y]=1;
-            int i=1;
-            while(x-i>=0){
-                if(puzzle_list[x-i][y]<-1){
-                    isLighted[x-i][y]+=1;
-                    i+=1;
-                }
-                else{
-                    break;
-                }
-            }
-            i=1;
-            while(x+i<row){
-                if(puzzle_list[x+i][y]<-1){
-                    isLighted[x+i][y]+=1;
-                    i+=1;
-                }
-                else{
-                    break;
-                }
-            }
-            i=1;
-            while(y-i>=0){
-                if(puzzle_list[x][y-i]<-1){
-                    isLighted[x][y-i]+=1;
-                    i+=1;
-                }
-                else{
-                    break;
-                }
-            }
-            i=1;
-            while(y+i<column){
-                if(puzzle_list[x][y+i]<-1){
-                    isLighted[x][y+i]+=1;
-                    i+=1;
-                }
-                else{
-                    break;
-                }
-            }
-        }
-        void darkSquare(int x, int y){
-            //在xy位置把灯拿走会导致亮度降低
-            isLighted[x][y]=0;
-            int i=1;
-            while(x-i>=0){
-                if(puzzle_list[x-i][y]<-1){
-                    isLighted[x-i][y]-=1;
-                    i+=1;
-                }
-                else{
-                    break;
-                }
-            }
-            i=1;
-            while(x+i<row){
-                if(puzzle_list[x+i][y]<-1){
-                    isLighted[x+i][y]-=1;
-                    i+=1;
-                }
-                else{
-                    break;
-                }
-            }
-            i=1;
-            while(y-i>=0){
-                if(puzzle_list[x][y-i]<-1){
-                    isLighted[x][y-i]-=1;
-                    i+=1;
-                }
-                else{
-                    break;
-                }
-            }
-            i=1;
-            while(y+i<column){
-                if(puzzle_list[x][y+i]<-1){
-                    isLighted[x][y+i]-=1;
-                    i+=1;
-                }
-                else{
-                    break;
-                }
-            }
+            else return false;
         }
         bool judgeResult(){
             
+            // for(int i=0;i<row;i++){
+            //     for(int j=0;j<column;j++){
+            //         if(isLighted[i][j]==0){
+            //             return false;
+            //         }
+            //     }
+            // }
+            // return true;
             for(int i=0;i<row;i++){
-                for(int j=0;j<column;j++){
-                    if(isLighted[i][j]==0){
+                for(int j=0;j<numRow[i];j++){
+                    if(rowAvailable[i][j]==false){
+                        return false;
+                    }
+                }
+            }
+            for(int i=0;i<column;i++){
+                for(int j=0;j<numColumn[i];j++){
+                    if(columnAvailable[i][j]==false){
                         return false;
                     }
                 }
@@ -474,7 +395,9 @@ class Akari{
                     for(int k=-3;k>-6;k=k-2){
                         puzzle_list[p->x][p->y]=k;
                         if(k==-3){
-                            lightSquare(p->x,p->y);
+                            // lightSquare(p->x,p->y);
+                            columnAvailable[p->y][columnConflict[p->x][p->y]]=true;
+                            rowAvailable[p->x][rowConflict[p->x][p->y]]=true;
                         }
                         helper(x,y);
                         if(hasPrinted){
@@ -482,7 +405,8 @@ class Akari{
                         }
                         puzzle_list[p->x][p->y]=-2;
                         if(k==-3){
-                            darkSquare(p->x,p->y);
+                            columnAvailable[p->y][columnConflict[p->x][p->y]]=false;
+                            rowAvailable[p->x][rowConflict[p->x][p->y]]=false;
                         }
                     }
                     s1->Push(s2->Pop());
@@ -504,7 +428,8 @@ class Akari{
                             //这个是列举-3放灯和-5不放灯两种情况，-2是未定义的方格
                             puzzle_list[x][y]=k;
                             if(k==-3){
-                                lightSquare(x,y);
+                                columnAvailable[y][columnConflict[x][y]]=true;
+                                rowAvailable[x][rowConflict[x][y]]=true;
                             }
                             if(y+1>=column)
                                 helper(x+1,0);
@@ -519,7 +444,8 @@ class Akari{
 
                             puzzle_list[x][y]=-2;
                             if(k==-3){
-                                darkSquare(x,y);
+                                columnAvailable[y][columnConflict[x][y]]=false;
+                                rowAvailable[x][rowConflict[x][y]]=false;
                             }
                         }
                     }
@@ -552,7 +478,6 @@ class Akari{
             }
         }
         void solve(){
-            init();
             setStack();
             helper(0,0);
         }
@@ -573,15 +498,15 @@ int main(){
     // c=8;
     // sd="...1X....X....1...1..X..X......0X......1..2..X...1....2....1X...";
     //sd="...1X...X....1..1..X.X......X........2..X..1....2";
-    // r=3;
-    // c=3;
-    // sd = "2....X.1.";
+    r=3;
+    c=3;
+    sd = "2....X.1.";
     // sd="2....X.1.";1........1...X.......X...2..X........1.....4............2.....2........X..2...X.......0...1........1
     // r=14;c=24;
     // sd=".........................X.1.X....0..X....X.X.1...X..X.0X.X..X.21.X..X...0.X.X....0..X....X.X.X..........................1XX....1....X....2.XXX........X....2....3............X....1....X........010.X....X....1....XXX..........................X.X.0....X..X....X.1.X...2..X.11.1..1.2X.X..X...1.X.0....X..X....X.X.1.........................";
-    r=10;
-    c=10;
-    sd="1........1...X.......X...2..X........1.....4............2.....2........X..2...X.......0...1........1";
+    // r=10;
+    // c=10;
+    // sd="1........1...X.......X...2..X........1.....4............2.....2........X..2...X.......0...1........1";
     // r=12;
     // c=12;
     // sd=".0...............X....3.....1..X.......2....X.....1....X.1.......2....2..X....2.......2.X....2.....2....2.......2..3.....1....X...............1.";
