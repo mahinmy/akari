@@ -98,10 +98,20 @@ class Akari{
             for(int j=0;j<column;j++){
                 int num=0;
                 for(int i=0;i<row;i++){
-                    if(i&&puzzle_list[i][j]==-2&&puzzle_list[i-1][j]>=-1){
-                        num++;
+                    if(i==0){
+                        while(puzzle_list[i][j]>=-1){
+                            i=i+1;
+                        }
                     }
-                    colSplit[i][j]=num;
+                    if(puzzle_list[i][j]>=-1){
+                        num+=1;
+                        while(i+1<row&&puzzle_list[i+1][j]>=-1){
+                            i=i+1;
+                        }
+                    }
+                    if(puzzle_list[i][j]==-2){
+                        colSplit[i][j]=num;
+                    }
                 }
                 numColumn[j]=num;
             }
@@ -110,14 +120,31 @@ class Akari{
                     colAva[i][j]=false;
                 }
             }
+            for(int i=0;i<row;i++){
+                for(int j=0;j<column;j++){
+                    cout<<colSplit[i][j]<<" ";
+                }
+                cout<<endl;
+            }
+            cout<<endl;
             //行分块
             for(int i=0;i<row;i++){
                 int num=0;
                 for(int j=0;j<column;j++){
-                    if(j&&puzzle_list[i][j]==-2&&puzzle_list[i][j-1]>=-1){
-                        num++;
+                    if(j==0){
+                        while(j+1<column&&puzzle_list[i][j]>=-1){
+                            j+=1;
+                        }
                     }
-                    rowSplit[i][j]=num;
+                    if(puzzle_list[i][j]>=-1){
+                        num+=1;
+                        while(j+1<column&&puzzle_list[i][j+1]>=-1){
+                            j=j+1;
+                        }
+                    }
+                    if(puzzle_list[i][j]==-2){
+                        rowSplit[i][j]=num;
+                    }
                 }
                 numRow[i]=num;
             }
@@ -126,6 +153,13 @@ class Akari{
                     rowAva[i][j]=false;
                 }
             }
+            for(int i=0;i<row;i++){
+                for(int j=0;j<column;j++){
+                    cout<<rowSplit[i][j]<<" ";
+                }
+                cout<<endl;
+            }
+            cout<<endl;
         }
         ~Akari(){
             while(!s1->IsEmpty()){
@@ -420,6 +454,7 @@ class Akari{
         }
         void solve(){
             setStack();
+            init();
             helper(0,0);
         }
 };
