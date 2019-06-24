@@ -65,120 +65,65 @@ public:
 class Akari{
     private:
         int row,column;
-        int **puzzle_list;
+        int puzzle_list[100][100];
         int mode;
         LinkStack<Point*>*s1;
         LinkStack<Point*>*s2;
         bool hasPrinted;
-        int **isLighted;//-1不可能照到，0还没照到，大于0照到了
         bool judge=0;
-        int **columnConflict;
-        int **rowConflict;
-        bool **columnAvailable;
-        bool **rowAvailable;
+        int colSplit[100][100];//列分块
+        int rowSplit[100][100];//行分块
+        bool colAva[100][100];
+        bool rowAva[100][100];
         int maxColumn;
         int maxRow;
-        int *numColumn;
-        int *numRow;
+        int numColumn[100];
+        int numRow[100];
     public:
         Akari(int **sudoku, int r, int c, int input_mode=1){
             row = r;
             column = c;
             mode = input_mode;
-            puzzle_list = new int*[r];
-            isLighted = new int*[r];
-            columnConflict = new int*[r];
-            rowConflict = new int*[r];
-            columnAvailable = new bool*[r];
-            rowAvailable = new bool*[r];
             for(int i=0;i<r;i++){
-                puzzle_list[i] = new int[c];
-                isLighted[i]= new int[c];
-                columnConflict[i] = new int[c];
-                rowConflict[i] = new int[c];
-                columnAvailable[i] = new bool[c];
-                rowAvailable[i] = new bool[c];
                 for(int j = 0;j<c;j++){
                     puzzle_list[i][j]=sudoku[i][j];
-                    if(puzzle_list[i][j]==-2){
-                        isLighted[i][j]=0;
-                    }
-                    else{
-                        isLighted[i][j]=-1;
-                    }
                 }
             }
             s1 = new LinkStack<Point*>();
             s2 = new LinkStack<Point*>();
             hasPrinted=false;
+        }
+        void init(){
             //列分块
-            int maxNum=0;
-            numColumn = new int[column];
             for(int j=0;j<column;j++){
                 int num=0;
                 for(int i=0;i<row;i++){
-                    if(puzzle_list[i][j]==-2){
-                        columnConflict[i][j]=num;
+                    if(i&&puzzle_list[i][j]==-2&&puzzle_list[i-1][j]>=-1){
+                        num++;
                     }
-                    if(puzzle_list[i][j]>=-1){
-                        num+=1;
-                        while(i+1<row&&puzzle_list[i][j]>=-1){
-                            i=i+1;
-                        }
-                    }
-                }
-                if(maxNum<num){
-                    maxNum=num;
+                    colSplit[i][j]=num;
                 }
                 numColumn[j]=num;
             }
-            maxColumn=maxNum;
-            for(int i=0;i<column;i++){
-                columnAvailable[i]=new bool[maxNum];
-                for(int j=0;j<maxNum;j++){
-                    columnAvailable[i][j]=true;
-                }
-            }
             for(int i=0;i<column;i++){
                 for(int j=0;j<numColumn[i];j++){
-                    columnAvailable[i][j]=false;
+                    colAva[i][j]=false;
                 }
             }
             //行分块
-            maxNum=0;
-            numRow = new int[row];
             for(int i=0;i<row;i++){
                 int num=0;
                 for(int j=0;j<column;j++){
-                    if(j==0){
-                        while(puzzle_list[i][j]==-1){
-                            j++;
-                        }
+                    if(j&&puzzle_list[i][j]==-2&&puzzle_list[i][j-1]>=-1){
+                        num++;
                     }
-                    if(puzzle_list[i][j]>=-1){
-                        num+=1;
-                        while(j+1<column && puzzle_list[i][j+1]>=-1){
-                            j=j+1;
-                        }
-                    }
-                    if(puzzle_list[i][j]==-2){
-                        rowConflict[i][j]=num;
-                    }
-                }
-                if(maxNum<num){
-                    maxNum=num;
+                    rowSplit[i][j]=num;
                 }
                 numRow[i]=num;
             }
             for(int i=0;i<row;i++){
-                rowAvailable[i]=new bool[maxNum];
-                for(int j=0;j<maxNum;j++){
-                    rowAvailable[i][j]=true;
-                }
-            }
-            for(int i=0;i<row;i++){
                 for(int j=0;j<numRow[i];j++){
-                    rowAvailable[i][j]=false;
+                    rowAva[i][j]=false;
                 }
             }
         }
@@ -193,10 +138,6 @@ class Akari{
             }
             delete s1;
             delete s2;
-            for(int i=0;i<row;i++){
-                delete puzzle_list[i];
-            }
-            delete puzzle_list;
         }
         void setStack(){
             for(int i=0;i<row;i++){
@@ -327,7 +268,7 @@ class Akari{
         }
 
         bool checkRule(int i, int j){
-            if(columnAvailable[j][columnConflict[i][j]]==false && rowAvailable[i][rowConflict[i][j]]==false){
+            if(colAva[j][colSplit[i][j]]==false && rowAva[i][rowSplit[i][j]]==false){
                 return true;
             }
             else return false;
@@ -344,14 +285,14 @@ class Akari{
             // return true;
             for(int i=0;i<row;i++){
                 for(int j=0;j<numRow[i];j++){
-                    if(rowAvailable[i][j]==false){
+                    if(rowAva[i][j]==false){
                         return false;
                     }
                 }
             }
             for(int i=0;i<column;i++){
                 for(int j=0;j<numColumn[i];j++){
-                    if(columnAvailable[i][j]==false){
+                    if(colAva[i][j]==false){
                         return false;
                     }
                 }
@@ -396,8 +337,8 @@ class Akari{
                         puzzle_list[p->x][p->y]=k;
                         if(k==-3){
                             // lightSquare(p->x,p->y);
-                            columnAvailable[p->y][columnConflict[p->x][p->y]]=true;
-                            rowAvailable[p->x][rowConflict[p->x][p->y]]=true;
+                            colAva[p->y][colSplit[p->x][p->y]]=true;
+                            rowAva[p->x][rowSplit[p->x][p->y]]=true;
                         }
                         helper(x,y);
                         if(hasPrinted){
@@ -405,8 +346,8 @@ class Akari{
                         }
                         puzzle_list[p->x][p->y]=-2;
                         if(k==-3){
-                            columnAvailable[p->y][columnConflict[p->x][p->y]]=false;
-                            rowAvailable[p->x][rowConflict[p->x][p->y]]=false;
+                            colAva[p->y][colSplit[p->x][p->y]]=false;
+                            rowAva[p->x][rowSplit[p->x][p->y]]=false;
                         }
                     }
                     s1->Push(s2->Pop());
@@ -428,8 +369,8 @@ class Akari{
                             //这个是列举-3放灯和-5不放灯两种情况，-2是未定义的方格
                             puzzle_list[x][y]=k;
                             if(k==-3){
-                                columnAvailable[y][columnConflict[x][y]]=true;
-                                rowAvailable[x][rowConflict[x][y]]=true;
+                                colAva[y][colSplit[x][y]]=true;
+                                rowAva[x][rowSplit[x][y]]=true;
                             }
                             if(y+1>=column)
                                 helper(x+1,0);
@@ -444,8 +385,8 @@ class Akari{
 
                             puzzle_list[x][y]=-2;
                             if(k==-3){
-                                columnAvailable[y][columnConflict[x][y]]=false;
-                                rowAvailable[x][rowConflict[x][y]]=false;
+                                colAva[y][colSplit[x][y]]=false;
+                                rowAva[x][rowSplit[x][y]]=false;
                             }
                         }
                     }
@@ -498,15 +439,15 @@ int main(){
     // c=8;
     // sd="...1X....X....1...1..X..X......0X......1..2..X...1....2....1X...";
     //sd="...1X...X....1..1..X.X......X........2..X..1....2";
-    r=3;
-    c=3;
-    sd = "2....X.1.";
+    // r=3;
+    // c=3;
+    // sd = "2....X.1.";
     // sd="2....X.1.";1........1...X.......X...2..X........1.....4............2.....2........X..2...X.......0...1........1
     // r=14;c=24;
     // sd=".........................X.1.X....0..X....X.X.1...X..X.0X.X..X.21.X..X...0.X.X....0..X....X.X.X..........................1XX....1....X....2.XXX........X....2....3............X....1....X........010.X....X....1....XXX..........................X.X.0....X..X....X.1.X...2..X.11.1..1.2X.X..X...1.X.0....X..X....X.X.1.........................";
-    // r=10;
-    // c=10;
-    // sd="1........1...X.......X...2..X........1.....4............2.....2........X..2...X.......0...1........1";
+    r=10;
+    c=10;
+    sd="1........1...X.......X...2..X........1.....4............2.....2........X..2...X.......0...1........1";
     // r=12;
     // c=12;
     // sd=".0...............X....3.....1..X.......2....X.....1....X.1.......2....2..X....2.......2.X....2.....2....2.......2..3.....1....X...............1.";
